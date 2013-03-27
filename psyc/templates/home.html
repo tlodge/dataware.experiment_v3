@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+ <h1> WELCOME TO MY EXPERIMENT!! </h1>
+ <form action="register" method="POST">
+    <fieldset>
+      <legend>Registration</legend>
+      <label>user name</label>
+      <input type="text" name="username" placeholder="Username">
+
+      <label>email address</label>
+      <input type="text" name="email" placeholder="Email">
+       
+      <label>password</label>
+      <input type="password" name="password" class="input-small" placeholder="Password">
+    </fieldset>
+
+    <fieldset>
+      <legend>Your catalog</legend>
+      <label>url of your catalog</label>
+      <input type="text" name="catalog_uri"  placeholder="Catalog url">
+
+      <label>your catalog name</label>
+      <input type="text" name="catalog_name"  placeholder="Your catalog name">
+
+      <button type="submit" class="btn">Submit</button>
+    </fieldset>
+</form>
+{% endblock %}
