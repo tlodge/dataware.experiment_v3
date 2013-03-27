@@ -1,22 +1,24 @@
 import time
 import urllib2
 import urllib
+import hashlib
+import json
+from psyc.models.processor import Processor 
 
-def register_processor(catalog, owner, query, resource_name):
+def register_processor(catalog, resource, query):
 
   #set expiry to two hours from now
   expiry = time.time() + (60 * 60 * 2)  
   state = "%d" % time.time()
-  client = fetchIdentifier(catalog)
 
   values = {
-            'client_id': client.id,
+            'client_id': catalog.client_id,
             'state': state,
-            'redirect_uri': client.redirect,
-            'scope': '{"resource_name" : "%s", "expiry_time": %s, "query": "%s"}' % (resource_name,expiry,query)
+            'redirect_uri': catalog.redirect_uri,
+            'scope': '{"resource_name" : "%s", "expiry_time": %s, "query": "%s"}' % (resource.resource_name,expiry,query)
   }
 
-  url = "%s/user/%s/client_request" % (catalog,owner)
+  url = "%s/user/%s/client_request" % (catalog.uri,resource.owner)
 
   data = urllib.urlencode(values)
   req = urllib2.Request(url,data)
@@ -31,10 +33,29 @@ def register_processor(catalog, owner, query, resource_name):
   if (not(result['success'])):
      return False
          
-
-  #addProcessorRequest(state=state, catalog=catalog, resource=resource_name,resource_uri=resource_uri,redirect=client.redirect, owner=owner, expiry=int(expiry),query=query)
-
+  proc = Processor(state=state, catalog=catalog, resource=resource, expiry=expiry, query=query)
+  proc.save()
+ 
   return True 
 
-def perform_execution():
-  return True
+def perform_execution(state,parameters,processor,result_url):
+  if not(processor is None):
+     url = '%s/invoke_processor' % processor.resource_uri
+     m = hashlib.md5()
+     m.update('%f' % time.time())
+     id = m.hexdigest()
+
+     values = {
+        'access_token':processor.token,
+        'parameters': parameters,
+        #'result_url' : "%s/result/%s" % (REALM,id)
+     }
+
+     data = urllib.urlencode(values)
+     req = urllib2.Request(url,data)
+     response = urllib2.urlopen(req)
+     data = response.read()
+
+     result = json.loads(data.replace( '\r\n','\n' ), strict=False)
+
+     #addExecutionRequest(execution_id=id, access_token=processor.token, parameters=parameters, sent=int(time.time()))

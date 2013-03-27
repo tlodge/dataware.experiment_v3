@@ -11,11 +11,13 @@ CLIENTNAME = "psycho"
 REALM      = "http://192.168.33.33:9080"
 
 class Catalog(db.Model):
-  uri = TextField()
+  uri = CharField()
+  client_id = CharField()
+  redirect_uri = CharField()
   registered = DateTimeField(default=datetime.datetime.now) 
 
 class CatalogAdmin(ModelAdmin):
-  columns = ('uri', 'registered')
+  columns = ('uri', 'client_id', 'redirect_uri', 'registered')
 
 def register():
 
@@ -26,8 +28,10 @@ def register():
 
    url = "%s/client_register" % catalog_uri
 
+   redirect_uri = "%s/%s" % (REALM, "processor") 
+
    values = {
-         'redirect_uri': "%s/%s" % (REALM, "processor"),
+         'redirect_uri': redirect_uri,
          'client_name':CLIENTNAME
    }
 
@@ -39,9 +43,10 @@ def register():
       result.replace( '\r\n','\n' ),
       strict=False
    )
+   print result
 
    if (result['success']):
-      insert_registration(catalog_uri)
+      insert_registration(catalog_uri, result['client_id'], redirect_uri)
 
 def registered(catalog_uri):
   try: 
@@ -50,6 +55,6 @@ def registered(catalog_uri):
   except Catalog.DoesNotExist:
     return False
 
-def insert_registration(uri):
-   catalog = Catalog(uri=uri)
+def insert_registration(uri, client_id, redirect_uri):
+   catalog = Catalog(uri=uri, client_id=client_id, redirect_uri=redirect_uri)
    catalog.save()
