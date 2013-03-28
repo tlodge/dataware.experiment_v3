@@ -4,6 +4,9 @@ import urllib
 import hashlib
 import json
 from psyc.models.processor import Processor 
+import psyc.models.execution as execution
+
+REALM  = "http://192.168.33.33:9080"
 
 def register_processor(catalog, resource, query):
 
@@ -32,13 +35,15 @@ def register_processor(catalog, resource, query):
 
   if (not(result['success'])):
      return False
-         
+  
+  print "saving processor"       
+
   proc = Processor(state=state, catalog=catalog, resource=resource, expiry=expiry, query=query)
   proc.save()
- 
   return True 
 
-def perform_execution(state,parameters,processor,result_url):
+def perform_execution(processor,parameters):
+  
   if not(processor is None):
      url = '%s/invoke_processor' % processor.resource_uri
      m = hashlib.md5()
@@ -48,7 +53,7 @@ def perform_execution(state,parameters,processor,result_url):
      values = {
         'access_token':processor.token,
         'parameters': parameters,
-        #'result_url' : "%s/result/%s" % (REALM,id)
+        'result_url' : "%s/result/%s" % (REALM,id)
      }
 
      data = urllib.urlencode(values)
@@ -58,4 +63,5 @@ def perform_execution(state,parameters,processor,result_url):
 
      result = json.loads(data.replace( '\r\n','\n' ), strict=False)
 
-     #addExecutionRequest(execution_id=id, access_token=processor.token, parameters=parameters, sent=int(time.time()))
+     execution.add(execution_id=id, access_token=processor.token, parameters=parameters)
+

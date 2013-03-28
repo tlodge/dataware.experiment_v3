@@ -2,6 +2,13 @@ from flask import Flask, Markup, url_for, request, make_response, redirect, rend
 from psyc import app
 from psyc.auth import auth
 from psyc.models.resource import Resource
+from psyc import experimenter
+import psyc.models.catalog as catalog
+import psyc.models.resource as resource
+import psyc.models.processor as processor
+import urllib2
+import urllib
+import json
 
 @app.route('/')
 def root():
@@ -29,6 +36,11 @@ def register():
 @auth.login_required
 def experiment():
     user = auth.get_logged_in_user()
+
+    myresource = resource.fetch_by_user(user)
+    mycatalog = catalog.fetch_by_uri(myresource.catalog_uri)
+    query = "select * from %s LIMIT 191" % myresource.resource_name
+    experimenter.register_processor(mycatalog, myresource, query)
     return render_template('experiment.html', user=user) 
 
 @app.route('/logout')
@@ -46,25 +58,28 @@ def token():
     if not(error is None):
         app.logger.info(error)
         app.logger.info(request.args.get('error_description', None))
-        prec = updateProcessorRequest(state=state, status=error)
-        return "Noted rejection <a href='%s/audit'>return to catalog</a>" % prec.catalog
+        prec = processor.updateProcessorRequest(state=state, status=error)
+        return "Noted rejection <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
 
     code  =  request.args.get('code', None)
 
-    #prec = updateProcessorRequest(state=state, status="accepted", code=code)
+    prec = processor.updateProcessorRequest(state=state, status="accepted", code=code)
 
-    if not(prec is None):
-        url = '%s/client_access?grant_type=authorization_code&redirect_uri=%s&code=%s' % (prec.catalog, prec.redirect,code)
+    if prec is not None:
+        url = '%s/client_access?grant_type=authorization_code&redirect_uri=%s&code=%s' % (prec.catalog.uri, prec.catalog.redirect_uri,code)
         f = urllib2.urlopen(url)
         data = f.read()
         f.close()
         result = json.loads(data.replace( '\r\n','\n' ), strict=False)
 
         if result["success"]:
-           #prec = updateProcessorRequest(state=state, status="accepted", token=result["access_token"])
-	   return "Successfully obtained token <a href='%s/audit'>return to catalog</a>" % prec.catalog
+           prec = processor.updateProcessorRequest(state=state, status="accepted", token=result["access_token"])
+  
+           experimenter.perform_execution(proc,"[]",result_url):
+
+	   return "Successfully obtained token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
         else:
-           return  "Failed to swap auth code for token <a href='%s/audit'>return to catalog</a>" % prec.catalog
+           return  "Failed to swap auth code for token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
 
     return "No pending request found for state %s" % state
 
@@ -75,12 +90,7 @@ def result(execution_id):
 
     try:
         if (request.form['success'] == 'True'):
-            execution_request = getExecutionRequest(execution_id)
-            result = request.form['return']
-
-            if not(execution_request is None):
-                addExecutionResponse(execution_id=execution_id, access_token=execution_request.access_token, result=str(result), received=int(time.time()))
-
+	    execution.update(execution_id=execution_id, result=str(result), received=int(time.time()))
         else:
             print "not doing anything at the mo!"
 

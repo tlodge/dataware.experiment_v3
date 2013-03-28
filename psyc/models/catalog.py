@@ -19,11 +19,18 @@ class Catalog(db.Model):
 class CatalogAdmin(ModelAdmin):
   columns = ('uri', 'client_id', 'redirect_uri', 'registered')
 
+def fetch_by_uri(uri):
+  try:
+    return Catalog.get(Catalog.uri == uri)
+  except Catalog.DoesNotExist:
+    return None  
+
 def register():
 
    catalog_uri    = "http://192.168.33.10:5000"
-
-   if registered(catalog_uri):
+ 
+   #check if already registered with the catalog
+   if fetch_by_uri(catalog_uri) is not None:
      return
 
    url = "%s/client_register" % catalog_uri
@@ -47,13 +54,6 @@ def register():
 
    if (result['success']):
       insert_registration(catalog_uri, result['client_id'], redirect_uri)
-
-def registered(catalog_uri):
-  try: 
-    Catalog.get(Catalog.uri == catalog_uri) is not None
-    return True
-  except Catalog.DoesNotExist:
-    return False
 
 def insert_registration(uri, client_id, redirect_uri):
    catalog = Catalog(uri=uri, client_id=client_id, redirect_uri=redirect_uri)
