@@ -6,9 +6,11 @@ from psyc import experimenter
 import psyc.models.catalog as catalog
 import psyc.models.resource as resource
 import psyc.models.processor as processor
+import psyc.models.execution as execution
 import urllib2
 import urllib
 import json
+import datetime
 
 @app.route('/')
 def root():
@@ -39,7 +41,7 @@ def experiment():
 
     myresource = resource.fetch_by_user(user)
     mycatalog = catalog.fetch_by_uri(myresource.catalog_uri)
-    query = "select * from %s LIMIT 191" % myresource.resource_name
+    query = "select * from %s LIMIT 210" % myresource.resource_name
     experimenter.register_processor(mycatalog, myresource, query)
     return render_template('experiment.html', user=user) 
 
@@ -74,9 +76,7 @@ def token():
 
         if result["success"]:
            prec = processor.updateProcessorRequest(state=state, status="accepted", token=result["access_token"])
-  
-           experimenter.perform_execution(proc,"[]",result_url):
-
+           experimenter.perform_execution(prec,"[]")
 	   return "Successfully obtained token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
         else:
            return  "Failed to swap auth code for token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
@@ -90,11 +90,13 @@ def result(execution_id):
 
     try:
         if (request.form['success'] == 'True'):
-	    execution.update(execution_id=execution_id, result=str(result), received=int(time.time()))
+            result = request.form['return']
+	    execution.update(execution_id=execution_id, result=str(result))
         else:
             print "not doing anything at the mo!"
 
     except:
+        print "failed to store results"
         success = False
 
     return json.dumps({'success':success})

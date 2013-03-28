@@ -10,20 +10,20 @@ class Execution(db.Model):
     parameters = CharField(null=True)
     access_token =  CharField(null=True)
     result   =  TextField(null=True)
-    received = DateTimeField(null=True)
+    received = DateTimeField(default=0)
 
 class ExecutionAdmin(ModelAdmin):
     columns = ('execution_id', 'sent', 'parameters', 'received')
 
-def add(id, access_token, parameters):
-    ex = Execution(id=id, access_token=access_token, parameters=parameters)
+def add(execution_id, access_token, parameters):
+    ex = Execution(execution_id=execution_id, access_token=access_token, parameters=parameters)
     ex.save()
 
-def update(execution_id, result, received):
+def update(execution_id, result):
     try:
        execution = Execution.get(Execution.execution_id == execution_id)
        execution.result = result
-       execution.received = received
+       execution.received = datetime.datetime.now() 
        execution.save()
-    except Processor.DoesNotExist:
-       return processor 
+    except Execution.DoesNotExist:
+       return None 

@@ -6,11 +6,12 @@ from peewee import *
 class Resource(db.Model):
   user = ForeignKeyField(auth.User, related_name='resources')
   catalog_uri = CharField()
+  resource_uri = CharField()
   owner = CharField()
   resource_name = CharField()
 
 class ResourceAdmin(ModelAdmin):
-  columns = ('user', 'catalog_uri', 'owner', 'resource_name')
+  columns = ('user', 'catalog_uri', 'resource_uri', 'owner', 'resource_name')
 
 def fetch_by_user(user):
   try:

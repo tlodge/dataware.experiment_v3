@@ -45,7 +45,7 @@ def register_processor(catalog, resource, query):
 def perform_execution(processor,parameters):
   
   if not(processor is None):
-     url = '%s/invoke_processor' % processor.resource_uri
+     url = '%s/invoke_processor' % processor.resource.resource_uri
      m = hashlib.md5()
      m.update('%f' % time.time())
      id = m.hexdigest()
