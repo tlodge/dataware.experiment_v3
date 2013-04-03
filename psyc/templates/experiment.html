@@ -1,5 +1,49 @@
 {% extends "base.html" %}
+       
 
 {% block content %}
- <h1>  I need to get your data now... </h1>
+<div class="container">
+    <div class="experiment">
+        <div class="row">
+            <div class="span12">
+                <div class="row">
+                    <div class="span2 centered">
+                        <div class="initial centered">1</div>
+                    </div>          
+                    <div class="span7" style="padding-top:5px;">
+                        <a href="{{catalog}}">Let me see your browsing habits</a>     
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="span2 centered">
+                        <div class="initial centered"> 2 </div>
+                    </div>          
+                    <div class="span7" style="padding-top:5px;">
+                        Answer some questions!      
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    var evm = function(){
+    
+        var that = {}
+        
+        that.message = ko.observable("hello!");
+        
+        that.installprocessor = function(){
+            
+        }
+        
+        return that;
+    }
+    
+    ko.applyBindings(evm(), $('.experiment')[0]);    
+        
+</script>
 {% endblock %}

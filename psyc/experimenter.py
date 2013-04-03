@@ -8,10 +8,20 @@ import psyc.models.execution as execution
 
 REALM  = "http://192.168.33.33:9080"
 
+def fetch_resource(catalog, owner, resource):
+    url = "%s/client_list_resources?client_id=%s&client_uri=%s&resource_owner=%s&resource_name=%s" % (catalog.uri, catalog.client_id, catalog.redirect_uri, owner, resource) 
+    f = urllib2.urlopen(url)
+    data = f.read()  
+    f.close()
+    return data
+    
 def register_processor(catalog, resource, query):
-
+  
+  print "in register processor!"
+  
   #set expiry to two hours from now
   expiry = time.time() + (60 * 60 * 2)  
+  
   state = "%d" % time.time()
 
   values = {
@@ -22,7 +32,8 @@ def register_processor(catalog, resource, query):
   }
 
   url = "%s/user/%s/client_request" % (catalog.uri,resource.owner)
-
+ 
+  print "url is %s" % url
   data = urllib.urlencode(values)
   req = urllib2.Request(url,data)
   response = urllib2.urlopen(req)
@@ -35,9 +46,7 @@ def register_processor(catalog, resource, query):
 
   if (not(result['success'])):
      return False
-  
-  print "saving processor"       
-
+    
   proc = Processor(state=state, catalog=catalog, resource=resource, expiry=expiry, query=query)
   proc.save()
   return True 
@@ -45,6 +54,7 @@ def register_processor(catalog, resource, query):
 def perform_execution(processor,parameters):
   
   if not(processor is None):
+  
      url = '%s/invoke_processor' % processor.resource.resource_uri
      m = hashlib.md5()
      m.update('%f' % time.time())

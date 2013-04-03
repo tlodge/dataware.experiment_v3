@@ -31,19 +31,58 @@ def register():
    auth.login_user(user) 
    #create the users resource
    resource = Resource(user=user, catalog_uri=catalog_uri, owner=owner, resource_name='urls')
+   cat = catalog.fetch_by_uri(catalog_uri)
+   
+   if cat is not None:
+        data = experimenter.fetch_resource(cat, owner, 'urls')
+        res = json.loads(data)
+        if len(res) > 0:
+            print "resource_uri %s" % res[0]['resource_uri']
+            resource.resource_uri = res[0]['resource_uri']
+    
    resource.save()
-   return redirect('/special/')   
+   return redirect('/experiment/')   
+
+@app.route('/getdetails/')
+@auth.login_required
+def getdetails():
+   cat = catalog.fetch_by_uri("http://192.168.33.10:5000")
+   
+   if cat is not None:
+        data = experimenter.fetch_resource(cat, 'yahootom', 'urls')
+        res = json.loads(data)
+        print res
+        return res[0]['resource_uri']
+   
+   return "nowt"
 
 @app.route('/experiment/')
 @auth.login_required
 def experiment():
     user = auth.get_logged_in_user()
-
+    
+    if user.admin:
+      return redirect('/admin/')
+    
     myresource = resource.fetch_by_user(user)
-    mycatalog = catalog.fetch_by_uri(myresource.catalog_uri)
-    query = "select * from %s LIMIT 210" % myresource.resource_name
-    experimenter.register_processor(mycatalog, myresource, query)
-    return render_template('experiment.html', user=user) 
+    
+    if myresource is not None:
+       mycatalog = catalog.fetch_by_uri(myresource.catalog_uri)
+       processors = processor.fetch_by_resource(myresource)
+       
+       if processors is None:
+            print "registering a new processor!"
+            query = "select * from %s LIMIT 210" % myresource.resource_name
+            experimenter.register_processor(mycatalog, myresource, query)
+            processors = processor.fetch_by_resource(myresource)
+       
+       print "ahahah got processors"
+       print processors
+       
+       return render_template('experiment.html', user=user, catalog="%s/%s" % (mycatalog.uri, 'audit'), processors=processors) 
+    
+    else:
+       return "You don't seem to have a resource"
 
 @app.route('/logout')
 @auth.login_required

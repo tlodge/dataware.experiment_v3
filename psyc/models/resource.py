@@ -6,7 +6,7 @@ from peewee import *
 class Resource(db.Model):
   user = ForeignKeyField(auth.User, related_name='resources')
   catalog_uri = CharField()
-  resource_uri = CharField()
+  resource_uri = CharField(null=True)
   owner = CharField()
   resource_name = CharField()
 
