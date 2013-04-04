@@ -16,6 +16,7 @@ import urllib2
 import urllib
 import json
 import datetime
+import time
 import random
 from gevent import getcurrent
 
@@ -104,7 +105,9 @@ def trigger(userid):
 def stream():
     
     user = auth.get_logged_in_user()
-    while True:
+    timeout       = time.time() + 15
+    
+    while time.time() < timeout:
         try:
             um.event.wait()
             message = um.latest()
@@ -115,11 +118,14 @@ def stream():
                 print "%d: sending message" % user.id
                 jsonmsg = json.dumps(message)
                 return jsonmsg
-            
+        
         except Exception, e:
             print "exception!"      
-            return json.dumps({'error':'timeout'})
+            return json.dumps({'error':e})
    
+    print "TIMED OUT"
+    return json.dumps({'error':'timeout'})
+    
 @app.route('/logout')
 @auth.login_required
 def logout():
