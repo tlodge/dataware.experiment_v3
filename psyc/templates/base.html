@@ -35,9 +35,11 @@
 <link href="{{ url_for('static', filename='bootstrap/css/bootstrap.css') }}" rel="stylesheet">
 <script src="{{ url_for('static', filename='jquery/jquery-1.9.1.min.js') }}"></script>
 <script src="{{ url_for('static', filename='knockout/knockout-2.2.1.js') }}"></script>
+<script src="{{ url_for('static', filename='knockout/knockout-postbox.js') }}"></script>
 
 <title> Test site! </title>
 <body>
+<div class="notification"></div>
 <h2> {% block content_title %}{% endblock %}</h2>
 {% block content %}{% endblock %}
 </body>

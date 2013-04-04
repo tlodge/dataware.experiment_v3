@@ -2,6 +2,9 @@
        
 
 {% block content %}
+
+<div class="notification"></div>
+
 <div class="container">
     <div class="experiment">
         <div class="row">
@@ -11,7 +14,7 @@
                         <div class="initial centered">1</div>
                     </div>          
                     <div class="span7" style="padding-top:5px;">
-                        <a href="{{catalog}}">Let me see your browsing habits</a>     
+                        <h3><a href="{{catalog}}">Give me access to your browsing habits</a>  </h3>   
                     </div>
                 </div>
                 <hr>
@@ -20,7 +23,25 @@
                         <div class="initial centered"> 2 </div>
                     </div>          
                     <div class="span7" style="padding-top:5px;">
-                        Answer some questions!      
+                         <h3> Answer some questions! </h3>     
+                         
+                            <table data-bind="visible:showresults" class="table table-condensed table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Url you visited</th>
+                                </tr>   
+                            </thead>                
+                            <tbody data-bind="foreach: results">
+                        
+                            <tr>
+                                <td data-bind="text: ts"></td>
+                                <td data-bind="text: url"></td>
+                            </tr> 
+                       
+                    </tbody>
+                </table>
+                     
                     </div>
                 </div>
             </div>
@@ -34,16 +55,81 @@
     
         var that = {}
         
-        that.message = ko.observable("hello!");
+        that.results = ko.observableArray({{result | safe}})
         
-        that.installprocessor = function(){
+        that.showresults = ko.computed(function(){
+            return that.results().length > 0;
+        });    
+        
+        return that;
+    }
+    
+    var notificationmodel = function(){
+        var that = {};
+        
+        that.events = ko.observableArray([]);
+        
+        that.lastEvent = ko.observable("").publishOn("myevents");
+         
+        /*
+         * subscribe to the events observable array and publish the last
+         * element, to be viewed by other view models.  Note that this currently
+         * sends a reference.  To create a deep copy we could do ko.toJSON and recreate
+         * at the other end.
+         */
+        that.events.subscribe(function(newValue){
+            //console.log(that.events()[that.events().length -1]);
+            that.lastEvent(that.events()[that.events().length -1]);   
+        });
+        
+        that.read = function(message){
+            that.events.remove(message);
+        };
+        
+        that.startpolling = function(frequency){
             
+            setTimeout(function(){
+        
+                $.ajax({
+                    url: "/stream",
+                    dataType: 'json', 
+                    timeout: 30000,
+                    cache: false,
+                    
+                    success: function(data) {
+                        frequency = 500;
+                        console.log("got the following:");
+                        console.log(data);
+                        that.events.push(data);
+                    },
+                     
+                    error: function(XMLHttpRequest, textStatus, errorThrown){
+                        switch(XMLHttpRequest.status){
+                            case 502: //update server is down
+                            case 403: //forbidden - unlikely to get access anytime soon
+                                frequency = 60000;
+                                break; 
+                            default:
+                                frequency = 5000;
+                        }
+                    },
+                    
+                    complete: function(){
+                        that.startpolling(frequency);        
+                    }
+                });
+            
+            },frequency);
         }
         
         return that;
     }
     
-    ko.applyBindings(evm(), $('.experiment')[0]);    
-        
+    
+    ko.applyBindings(evm(), $('.experiment')[0]); 
+    var nm = notificationmodel();	
+	ko.applyBindings(nm,$(".notification")[0]);
+    nm.startpolling(500);
+
 </script>
 {% endblock %}

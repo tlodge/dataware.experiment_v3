@@ -5,6 +5,7 @@ from psyc.database import db
 from peewee import *
 
 class Execution(db.Model):
+    user         = ForeignKeyField(auth.User)
     execution_id = CharField()
     sent  = DateTimeField(default=datetime.datetime.now)
     parameters = CharField(null=True)
@@ -13,10 +14,10 @@ class Execution(db.Model):
     received = DateTimeField(default=0)
 
 class ExecutionAdmin(ModelAdmin):
-    columns = ('execution_id', 'sent', 'parameters', 'received')
+    columns = ('user', 'execution_id', 'sent', 'parameters', 'received')
 
-def add(execution_id, access_token, parameters):
-    ex = Execution(execution_id=execution_id, access_token=access_token, parameters=parameters)
+def add(user,execution_id, access_token, parameters):
+    ex = Execution(user=user,execution_id=execution_id, access_token=access_token, parameters=parameters)
     ex.save()
 
 def update(execution_id, result):
@@ -27,3 +28,13 @@ def update(execution_id, result):
        execution.save()
     except Execution.DoesNotExist:
        return None 
+
+def fetch_latest_results_by_user(user):
+    try:
+        executions = Execution.select().where(Execution.user==user).order_by(Execution.received.desc()).limit(1)
+        for execution in executions:
+            return execution.result
+    except: 
+        return None  
+
+    return None

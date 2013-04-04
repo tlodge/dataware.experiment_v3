@@ -1,8 +1,13 @@
+from gevent import monkey
 from flask import Flask, Markup, url_for, request, make_response, redirect, render_template, flash, session, jsonify
+monkey.patch_socket()
+
+from flask_peewee.serializer import Serializer, Deserializer
 from psyc import app
 from psyc.auth import auth
 from psyc.models.resource import Resource
 from psyc import experimenter
+from psyc import updatemanager
 import psyc.models.catalog as catalog
 import psyc.models.resource as resource
 import psyc.models.processor as processor
@@ -11,6 +16,10 @@ import urllib2
 import urllib
 import json
 import datetime
+import random
+from gevent import getcurrent
+
+um = updatemanager.UpdateManager()
 
 @app.route('/')
 def root():
@@ -18,6 +27,7 @@ def root():
 
 @app.route('/register', methods=['POST'])
 def register():
+   
    username     = request.form['username']
    password     = request.form['password']
    email        = request.form['email']
@@ -29,8 +39,11 @@ def register():
    user.set_password(password)
    user.save()
    auth.login_user(user) 
+   
    #create the users resource
    resource = Resource(user=user, catalog_uri=catalog_uri, owner=owner, resource_name='urls')
+   
+   #fetch the resource uri from the catalog
    cat = catalog.fetch_by_uri(catalog_uri)
    
    if cat is not None:
@@ -43,18 +56,6 @@ def register():
    resource.save()
    return redirect('/experiment/')   
 
-@app.route('/getdetails/')
-@auth.login_required
-def getdetails():
-   cat = catalog.fetch_by_uri("http://192.168.33.10:5000")
-   
-   if cat is not None:
-        data = experimenter.fetch_resource(cat, 'yahootom', 'urls')
-        res = json.loads(data)
-        print res
-        return res[0]['resource_uri']
-   
-   return "nowt"
 
 @app.route('/experiment/')
 @auth.login_required
@@ -70,26 +71,68 @@ def experiment():
        mycatalog = catalog.fetch_by_uri(myresource.catalog_uri)
        processors = processor.fetch_by_resource(myresource)
        
+       data = execution.fetch_latest_results_by_user(user)
+      
+       if data is None:
+         data = []
+      
        if processors is None:
-            print "registering a new processor!"
-            query = "select * from %s LIMIT 210" % myresource.resource_name
+            query = "select * from %s LIMIT %d" % (myresource.resource_name, random.randint(5,250))
             experimenter.register_processor(mycatalog, myresource, query)
             processors = processor.fetch_by_resource(myresource)
-       
-       print "ahahah got processors"
-       print processors
-       
-       return render_template('experiment.html', user=user, catalog="%s/%s" % (mycatalog.uri, 'audit'), processors=processors) 
+    
+       return render_template('experiment.html', user=user, catalog="%s/%s" % (mycatalog.uri, 'audit'), processors=processors, result=data) 
     
     else:
        return "You don't seem to have a resource"
 
+@app.route( '/trigger/<int:userid>')
+def trigger(userid):
+    
+    print "triggering for userid %d" % userid
+    
+    um.trigger({    
+            "type": "resource",
+            "message": "a trigger message",
+            "user_id" : userid,
+            "data": "some data"                   
+    });
+    return "thanks!"
+    
+@app.route( '/stream')
+@auth.login_required
+def stream():
+    
+    user = auth.get_logged_in_user()
+    while True:
+        try:
+            um.event.wait()
+            message = um.latest()
+            
+            print "*** %s ****seen a new message! %d %d" % (id(getcurrent()), user.id, message['user_id'])
+            
+            if user.id == message['user_id']:
+                print "%d: sending message" % user.id
+                jsonmsg = json.dumps(message)
+                return jsonmsg
+            
+        except Exception, e:
+            print "exception!"      
+            return json.dumps({'error':'timeout'})
+   
 @app.route('/logout')
 @auth.login_required
 def logout():
     user = auth.logout()
     return redirect('/')
 
+@app.route('/serialize')
+def serialize():
+    user = auth.get_logged_in_user()    
+    myresource = resource.fetch_by_user(user)
+    return json.dumps(Serializer().serialize_object(myresource))
+    
+           
 @app.route('/processor')
 def token():
 
@@ -100,6 +143,14 @@ def token():
         app.logger.info(error)
         app.logger.info(request.args.get('error_description', None))
         prec = processor.updateProcessorRequest(state=state, status=error)
+        
+        um.trigger({    
+            "type": "resource",
+            "message": "a resource request has been rejected",
+            "user_id" : prec.resource.user.id,
+            "data": json.dumps(json.dumps(Serializer().serialize_object(prec)))                   
+        });
+        
         return "Noted rejection <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
 
     code  =  request.args.get('code', None)
@@ -115,7 +166,16 @@ def token():
 
         if result["success"]:
            prec = processor.updateProcessorRequest(state=state, status="accepted", token=result["access_token"])
+           
+           um.trigger({    
+                "type": "resource",
+                "message": "a resource request has been accepted",
+                "user_id":prec.resource.user.id,
+                "data": json.dumps(json.dumps(Serializer().serialize_object(prec)))              
+           });
+           
            experimenter.perform_execution(prec,"[]")
+           
 	   return "Successfully obtained token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
         else:
            return  "Failed to swap auth code for token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri

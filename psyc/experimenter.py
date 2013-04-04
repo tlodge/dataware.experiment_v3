@@ -5,6 +5,7 @@ import hashlib
 import json
 from psyc.models.processor import Processor 
 import psyc.models.execution as execution
+from psyc.auth import auth
 
 REALM  = "http://192.168.33.33:9080"
 
@@ -70,8 +71,6 @@ def perform_execution(processor,parameters):
      req = urllib2.Request(url,data)
      response = urllib2.urlopen(req)
      data = response.read()
-
      result = json.loads(data.replace( '\r\n','\n' ), strict=False)
-
-     execution.add(execution_id=id, access_token=processor.token, parameters=parameters)
+     execution.add(user=auth.get_logged_in_user(),execution_id=id, access_token=processor.token, parameters=parameters)
 

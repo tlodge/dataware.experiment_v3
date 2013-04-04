@@ -8,6 +8,7 @@ import psyc.models.resource as resource
 import psyc.models.processor as processor
 import psyc.models.execution as execution
 
+from gevent.wsgi import WSGIServer
 from flask_peewee.admin import Admin
 port = 9080
 
@@ -33,5 +34,6 @@ admin.setup()
 import psyc.rest
 import psyc.views
 catalog.register()
-app.run(host='0.0.0.0', port=port, debug=True)
-
+#app.run(host='0.0.0.0', port=port, debug=True)
+http_server = WSGIServer(('', port), app)
+http_server.serve_forever()
