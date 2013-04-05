@@ -37,6 +37,16 @@ def fetch_by_id(execution_id):
     except Execution.DoesNotExist:
        return None 
 
+def fetch_results_for_user(user):
+   
+    try:
+        executions = Execution.select().where(Execution.user==user).order_by(Execution.received.desc())
+        return dict(((e.execution_id, e.result) for e in executions))
+    except: 
+        pass
+        
+    return {}
+    
 def fetch_latest_results_by_user(user):
     try:
         executions = Execution.select().where(Execution.user==user).order_by(Execution.received.desc()).limit(1)

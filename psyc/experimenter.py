@@ -19,8 +19,7 @@ def fetch_resource(catalog, owner, resource):
 def register_processor(catalog, resource):
   
   query = "select ts,url from %s WHERE ts > %%s and ts < %%s LIMIT 100" % (resource.resource_name)
-  print "in register processor!"
-  
+ 
   #set expiry to 1 day from now
   expiry = time.time() + (60 * 60 * 24)  
   
@@ -53,14 +52,16 @@ def register_processor(catalog, resource):
   proc.save()
   return True 
 
-def perform_execution(processor,parameters):
+    
+    
+def perform_execution(processor,id,parameters):
   
   if not(processor is None):
   
      url = '%s/invoke_processor' % processor.resource.resource_uri
-     m = hashlib.md5()
-     m.update('%f' % time.time())
-     id = m.hexdigest()
+     #m = hashlib.md5()
+     #m.update('%f' % time.time())
+     #id = m.hexdigest()
 
      values = {
         'access_token':processor.token,

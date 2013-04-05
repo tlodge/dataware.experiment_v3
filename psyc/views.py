@@ -22,6 +22,18 @@ from gevent import getcurrent
 
 um = updatemanager.UpdateManager()
 
+ts        = time.time()
+now       = datetime.datetime.fromtimestamp(ts).strftime('%Y/%m/%d:%H:%M:%S')
+aweekago  = datetime.datetime.fromtimestamp(ts-(7*24*60*60)).strftime('%Y/%m/%d:%H:%M:%S')
+adayago   = datetime.datetime.fromtimestamp(ts-(24*60*60)).strftime('%Y/%m/%d:%H:%M:%S') 
+anhourago = datetime.datetime.fromtimestamp(ts-(60*60)).strftime('%Y/%m/%d:%H:%M:%S')
+    
+queries = [ 
+            "select from urls where ts < '%s' and ts > '%s'" % (aweekago,now),
+            "select from urls where ts < '%s' and ts > '%s'" % (adayago,now),
+            "select from urls where ts < '%s' and ts > '%s'" % (anhourago,now)
+          ]
+           
 @app.route('/')
 def root():
     return render_template('home.html')
@@ -62,7 +74,32 @@ def register():
 @auth.login_required
 def experiment():
     user = auth.get_logged_in_user()
-    
+   
+    questions = [
+        {
+            "id": "%d_1" % user.id, 
+            "link": "question one", 
+            "title": "this weeks worth of browsing", 
+            "description": "On the left hand side is a selection of some of the urls that you visited in the last week...the question is.....",
+            "query": queries[0]
+        },
+        {
+            "id": "%d_2" % user.id,
+            "link": "question two", 
+            "title": "today's browsing", 
+            "description":"On the left hand side is a selection of some of the urls that you visited TODAY...the question is.....",
+            "query": queries[1]
+        },
+        {   
+            "id": "%d_3" % user.id,
+            "link": "question three", 
+            "title": "last hour's worth of browsing", 
+            "description": "On the left hand side is a selection of some of the urls that you visited in THE LAST HOUR!...the question is.....",
+            "query": queries[2]
+        }
+    ]
+
+        
     if user.admin:
       return redirect('/admin/')
     
@@ -72,16 +109,15 @@ def experiment():
        mycatalog = catalog.fetch_by_uri(myresource.catalog_uri)
        processors = processor.fetch_by_resource(myresource)
        
-       data = execution.fetch_latest_results_by_user(user)
+       data = execution.fetch_results_for_user(user)
       
-       if data is None:
-         data = []
-      
+       print "adta is"
+       print data
        if processors is None:
             experimenter.register_processor(mycatalog, myresource)
             processors = processor.fetch_by_resource(myresource)
     
-       return render_template('experiment.html', user=user, catalog="%s/%s" % (mycatalog.uri, 'audit'), processors=processors, result=data) 
+       return render_template('experiment.html', user=user, catalog="%s/%s" % (mycatalog.uri, 'audit'), processors=processors, questions=questions, results=json.dumps(data)) 
     
     else:
        return "You don't seem to have a resource"
@@ -169,15 +205,16 @@ def token():
                 "data": json.dumps(Serializer().serialize_object(prec))              
            });
            
-           experimenter.perform_execution(prec,'["2013/03/23:10:22:37","2013/03/23:14:22:37"]')
+           experimenter.perform_execution(prec, "%d_1" % prec.resource.user.id, '["%s","%s"]' % (aweekago,now))
+           experimenter.perform_execution(prec, "%d_2" % prec.resource.user.id, '["%s","%s"]' % (adayago,now))
+           experimenter.perform_execution(prec, "%d_3" % prec.resource.user.id, '["%s","%s"]' % (anhourago,now))
            
 	   return "Successfully obtained token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
         else:
            return  "Failed to swap auth code for token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
 
-    return "No pending request found for state %s" % state
-
-
+    return "No pending request found for state %s" % state  
+ 
 @app.route( '/trigger/<execution_id>')
 def trigger(execution_id):
     
