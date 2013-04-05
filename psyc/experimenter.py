@@ -16,12 +16,13 @@ def fetch_resource(catalog, owner, resource):
     f.close()
     return data
     
-def register_processor(catalog, resource, query):
+def register_processor(catalog, resource):
   
+  query = "select ts,url from %s WHERE ts > %%s and ts < %%s LIMIT 100" % (resource.resource_name)
   print "in register processor!"
   
-  #set expiry to two hours from now
-  expiry = time.time() + (60 * 60 * 2)  
+  #set expiry to 1 day from now
+  expiry = time.time() + (60 * 60 * 24)  
   
   state = "%d" % time.time()
 

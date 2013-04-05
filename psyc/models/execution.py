@@ -26,6 +26,14 @@ def update(execution_id, result):
        execution.result = result
        execution.received = datetime.datetime.now() 
        execution.save()
+       return execution
+    except Execution.DoesNotExist:
+       return None 
+
+def fetch_by_id(execution_id):
+    try:
+       execution = Execution.get(Execution.execution_id == execution_id)
+       return execution
     except Execution.DoesNotExist:
        return None 
 

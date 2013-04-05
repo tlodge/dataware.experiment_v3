@@ -78,27 +78,13 @@ def experiment():
          data = []
       
        if processors is None:
-            query = "select * from %s LIMIT %d" % (myresource.resource_name, random.randint(5,250))
-            experimenter.register_processor(mycatalog, myresource, query)
+            experimenter.register_processor(mycatalog, myresource)
             processors = processor.fetch_by_resource(myresource)
     
        return render_template('experiment.html', user=user, catalog="%s/%s" % (mycatalog.uri, 'audit'), processors=processors, result=data) 
     
     else:
        return "You don't seem to have a resource"
-
-@app.route( '/trigger/<int:userid>')
-def trigger(userid):
-    
-    print "triggering for userid %d" % userid
-    
-    um.trigger({    
-            "type": "resource",
-            "message": "a trigger message",
-            "user_id" : userid,
-            "data": "some data"                   
-    });
-    return "thanks!"
     
 @app.route( '/stream')
 @auth.login_required
@@ -106,6 +92,9 @@ def stream():
     
     user = auth.get_logged_in_user()
     timeout       = time.time() + 15
+    
+    #alternatively could add a snum to each event, and have the um.event.wait timeout
+    #and send if event snum > mysnum
     
     while time.time() < timeout:
         try:
@@ -121,10 +110,10 @@ def stream():
         
         except Exception, e:
             print "exception!"      
-            return json.dumps({'error':e})
+            return json.dumps({'type':'error', 'data':e})
    
     print "TIMED OUT"
-    return json.dumps({'error':'timeout'})
+    return json.dumps({'type':'error', 'data':'timeout'})
     
 @app.route('/logout')
 @auth.login_required
@@ -154,7 +143,7 @@ def token():
             "type": "resource",
             "message": "a resource request has been rejected",
             "user_id" : prec.resource.user.id,
-            "data": json.dumps(json.dumps(Serializer().serialize_object(prec)))                   
+            "data": json.dumps(Serializer().serialize_object(prec))                  
         });
         
         return "Noted rejection <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
@@ -177,10 +166,10 @@ def token():
                 "type": "resource",
                 "message": "a resource request has been accepted",
                 "user_id":prec.resource.user.id,
-                "data": json.dumps(json.dumps(Serializer().serialize_object(prec)))              
+                "data": json.dumps(Serializer().serialize_object(prec))              
            });
            
-           experimenter.perform_execution(prec,"[]")
+           experimenter.perform_execution(prec,'["2013/03/23:10:22:37","2013/03/23:14:22:37"]')
            
 	   return "Successfully obtained token <a href='%s/audit'>return to catalog</a>" % prec.catalog.uri
         else:
@@ -188,15 +177,48 @@ def token():
 
     return "No pending request found for state %s" % state
 
+
+@app.route( '/trigger/<execution_id>')
+def trigger(execution_id):
+    
+    print "triggering for executionid %s" % execution_id
+    
+    myex = execution.fetch_by_id(execution_id=execution_id)
+        
+    um.trigger({    
+        "type": "execution",
+        "message": "results have been received from an execution %d" % random.randint(0,500),
+        "user_id":myex.user.id,
+        "data": myex.result              
+    });
+    
+    return "thanks!"
+    
 @app.route('/result/<execution_id>', methods=['POST'])
 def result(execution_id):
 
     success = True
-
+    
+    print "got results for execution id %s" % execution_id
+    
     try:
         if (request.form['success'] == 'True'):
+            print "success is true!"
+            
             result = request.form['return']
-	    execution.update(execution_id=execution_id, result=str(result))
+            
+            print "results are %s" % result
+            print "saving execution"
+            my_execution = execution.update(execution_id=execution_id, result=str(result))
+            print "saved execution"
+            
+            um.trigger({    
+                "type": "execution",
+                "message": "results have been received from an execution",
+                "user_id":my_execution.user.id,
+                "data": my_execution.result              
+            });
+        
         else:
             print "not doing anything at the mo!"
 

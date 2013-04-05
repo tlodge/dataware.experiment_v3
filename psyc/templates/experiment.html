@@ -3,6 +3,20 @@
 
 {% block content %}
 
+<div class="navbar navbar-inverse navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">     
+      <a class="brand" href="#">My experiment</a>
+      <div class="nav-collapse collapse">
+        <form class="navbar-form pull-right" method="get" action="/accounts/logout/">
+            <button class="btn btn-danger">Logout</button>
+        </form>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+</div>
+
+
 <div class="notification"></div>
 
 <div class="container">
@@ -22,10 +36,29 @@
                     <div class="span2 centered">
                         <div class="initial centered"> 2 </div>
                     </div>          
-                    <div class="span7" style="padding-top:5px;">
-                         <h3> Answer some questions! </h3>     
-                         
-                            <table data-bind="visible:showresults" class="table table-condensed table-striped table-bordered">
+                      <div class="span7" style="padding-top:5px;">
+                        <h3>Answer some questions!</h3>   
+                    </div>
+                </div>
+            
+                <div class="row">
+                    <div class="span10 offset2" style="padding-top:5px;">
+                        <div class="navbar">
+                            <div class="navbar-inner">
+                                <ul class="nav" data-bind="foreach:questions">
+                                    <li data-bind="css:{active:$parent.amActive($data)}"><a href="#" data-bind="text:link, click:function(){$parent.currentQuestion($data)}"></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        
+                       
+                        <legend data-bind="text:title"></legend> 
+                        <div class="alert alert-info" data-bind="text:query"></div> 
+                        
+                        <div class="row">
+                            <div class="span5">
+                        <table data-bind="visible:showresults" class="table table-condensed table-striped table-bordered">
                             <thead>
                                 <tr>
                                     <th>Time</th>
@@ -33,15 +66,17 @@
                                 </tr>   
                             </thead>                
                             <tbody data-bind="foreach: results">
-                        
-                            <tr>
-                                <td data-bind="text: ts"></td>
-                                <td data-bind="text: url"></td>
-                            </tr> 
-                       
-                    </tbody>
-                </table>
-                     
+                                <tr>
+                                    <td data-bind="text: ts"></td>
+                                    <td data-bind="text: url"></td>
+                                </tr> 
+                            </tbody>
+                        </table>
+                        </div>
+                        <div class="span3">
+                            <strong data-bind="text:link"></strong>
+                        </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -55,7 +90,73 @@
     
         var that = {}
         
-        that.results = ko.observableArray({{result | safe}})
+        that.questions = ko.observableArray([
+        {
+            "id": 1, 
+            "link": "question one", 
+            "title": "this weeks worth of browsing", 
+            "description": "This will blah blah",
+            "query":"select from urls where ts < '2013/x/y/z' and ts > '2012/x/y/z'"
+        },
+        {
+            "id": 2, 
+            "link": "question two", 
+            "title": "today's browsing", 
+            "description": "This oooh will blah blah blah",
+            "query": "select from urls where ts < '2013/x/f/z' and ts > '2012/Q/y/z'"
+        },
+        {   
+            "id": 3, 
+            "link": "question three", 
+            "title": "last hour's worth of browsing", 
+            "description": "This question will blah blah blah",
+            "query":"select from urls where ts < '2013/x/f/z' and ts > '2012/Q/y/z'" 
+        },
+        ]);
+        
+        that.currentQuestion = ko.observable(that.questions()[0]);
+        
+        that.amActive = function(item){
+        
+            if (that.currentQuestion()){
+                return item.id == that.currentQuestion().id;
+            }
+            return false;
+        };
+        
+        that.showOverView = ko.computed(function(){
+            return that.currentQuestion() == undefined;
+        });
+        
+        that.title = ko.computed(function(){
+            return that.currentQuestion().title;
+        });
+        
+        that.body = ko.computed(function(){
+            return that.currentQuestion().description;
+        });
+        
+        that.link = ko.computed(function(){
+            return that.currentQuestion().link;
+        });
+        
+        that.query = ko.computed(function(){
+            if (that.currentQuestion().query)    
+                return that.currentQuestion().query;
+            return undefined;
+        });
+        
+        that.results = ko.observableArray({{result | safe}});
+        
+        that.event = ko.observable().subscribeTo("myevents");
+        
+        that.event.subscribe(function(event){
+            if (event){
+                if (event.type && event.type == "execution"){
+                    that.results(JSON.parse(event.data))
+                }
+            }
+        });
         
         that.showresults = ko.computed(function(){
             return that.results().length > 0;
@@ -98,8 +199,6 @@
                     
                     success: function(data) {
                         frequency = 500;
-                        console.log("got the following:");
-                        console.log(data);
                         that.events.push(data);
                     },
                      
