@@ -34,14 +34,14 @@
                 <hr>
                 <div class="row">
                     <div class="span2 centered">
-                        <div class="initial centered"> 2 </div>
+                        <div class="initial centered" data-bind="css:{faded:!showresults()}"> 2 </div>
                     </div>          
                       <div class="span7" style="padding-top:5px;">
-                        <h3>Answer some questions!</h3>   
+                        <h3 data-bind="css:{faded: !showresults()}">Answer some questions!</h3>   
                     </div>
                 </div>
             
-                <div class="row">
+                <div class="row" data-bind="visible:showresults">
                     <div class="span10 offset2" style="padding-top:5px;">
                         <div class="navbar">
                             <div class="navbar-inner">
@@ -68,7 +68,7 @@
                                     <tbody data-bind="foreach: result">
                                         <tr>
                                             <td data-bind="text: ts"></td>
-                                            <td data-bind="text: url"></td>
+                                            <td data-bind="text: url, css:{red:$parent.showFake($data)}"}></td>
                                         </tr> 
                                     </tbody>
                                 </table>
@@ -77,6 +77,10 @@
                             <div class="span5">
                                 <strong data-bind="text:link"></strong>
                                 <p data-bind="text:description"></p>
+                                <label class="checkbox"> 
+                                    <input type="checkbox" data-bind="checked:makefakevisible"/>
+                                    show fakes!
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -100,6 +104,8 @@
         
         that.result = ko.observableArray([]);
         
+        that.makefakevisible = ko.observable(false);
+        
         that.updateresult = function(){
             if (that.currentQuestion().id){
                 if (that.results){
@@ -120,6 +126,10 @@
                 return item.id == that.currentQuestion().id;
             }
             return false;
+        };
+        
+        that.showFake = function(url){
+            return url.auth == false && that.makefakevisible();
         };
         
         that.showOverView = ko.computed(function(){
