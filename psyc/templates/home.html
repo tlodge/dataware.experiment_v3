@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="navbar navbar-inverse navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">     
+      <a class="brand" href="#">My experiment</a>
+      <div class="nav-collapse collapse">
+        <form method="post" action="/accounts/login/?next=%2Fexperiment%2F" class="navbar-form pull-right">
+          <input class="span2" id="username" name="username" type="text" placeholder="username">
+          <input class="span2" id="password" name="password" type="password" placeholder="Password">
+          <button type="submit" class="btn">Sign in</button>
+        </form>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="span8">
+            <!-- Main hero unit for a primary marketing message or call to action -->
+            <div class="hero-unit">
+                <h1>Welcome to my experiment</h1>
+                <p>All you need to do is sign in, provide us with the location of your dataware catalog, and we'll do the rest..</p>
+                <p><a href="#" class="btn btn-primary btn-large">Learn more &raquo;</a></p>
+            </div>
+            
+          </div> <!-- /span8 -->
+          <div class="span4">
+                <form action="register" method="POST">
+                    <fieldset>
+                      <legend>Registration</legend>
+                      <label>user name</label>
+                      <input type="text" name="username" placeholder="Username">
+                
+                      <label>email address</label>
+                      <input type="text" name="email" placeholder="Email">
+                       
+                      <label>password</label>
+                      <input type="password" name="password" class="input-small" placeholder="Password">
+                    </fieldset>
+                
+                    <fieldset>
+                      <legend>Your catalog</legend>
+                      <label>url of your catalog</label>
+                      <input type="text" name="catalog_uri"  placeholder="Catalog url">
+                
+                      <label>your catalog username</label>
+                      <input type="text" name="catalog_name"  placeholder="Your catalog name">   
+                    </fieldset>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>          
+          </div> <!-- /span4 -->
+        </div> <!-- /row -->
+      <hr>
+
+      <footer>
+        <p>&copy; Horizon 2013</p>
+      </footer>
+
+    </div> <!-- /container -->
+
+
+ 
+ 
+ 
+{% endblock %}

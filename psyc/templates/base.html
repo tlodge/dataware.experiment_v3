@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<style>
+    body{
+        padding-top: 60px;
+    }
+    
+    .large-text{
+        font-size: 40px;
+    }
+    
+    .centered{
+        text-align: center;
+        display: block;
+    }
+
+    .initial {
+        background: none repeat scroll 0 0 #0088CC;
+        border: 3px solid #FFFFFF;
+        border-radius: 100px 100px 100px 100px;
+        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+        color: #FFFFFF;
+        font-size: 50px;
+        font-weight: 600;
+        display: block;
+        height: 62px;
+        margin-left:auto;
+        margin-right:auto;
+        line-height: 55px;
+        text-align: center;
+        text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+        width: 62px;
+    }
+    
+    .faded{
+        color: #E5E5E5; 
+    }
+    
+    .red{
+        color: #ff0000;
+    }
+    
+</style>
+<link href="{{ url_for('static', filename='bootstrap/css/bootstrap.css') }}" rel="stylesheet">
+<script src="{{ url_for('static', filename='jquery/jquery-1.9.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='knockout/knockout-2.2.1.js') }}"></script>
+<script src="{{ url_for('static', filename='knockout/knockout-postbox.js') }}"></script>
+
+<title> Test site! </title>
+<body>
+<div class="notification"></div>
+<h2> {% block content_title %}{% endblock %}</h2>
+{% block content %}{% endblock %}
+</body>
+</html>

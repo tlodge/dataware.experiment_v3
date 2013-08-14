@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+       
+
+{% block content %}
+
+<div class="navbar navbar-inverse navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">     
+      <a class="brand" href="#">My experiment</a>
+      <div class="nav-collapse collapse">
+        <form class="navbar-form pull-right" method="get" action="/accounts/logout/">
+            <button class="btn btn-danger">Logout</button>
+        </form>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+</div>
+
+
+<div class="notification"></div>
+
+<div class="container">
+    <div class="experiment">
+        <div class="row">
+            <div class="span12">
+                <div class="row">
+                    <div class="span2 centered">
+                        <div class="initial centered">1</div>
+                    </div>          
+                    <div class="span7" style="padding-top:5px;">
+                        <h3><a href="{{catalog}}">Give me access to your browsing habits</a>  </h3>   
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="span2 centered">
+                        <div class="initial centered" data-bind="css:{faded:!showresults()}"> 2 </div>
+                    </div>          
+                      <div class="span7" style="padding-top:5px;">
+                        <h3 data-bind="css:{faded: !showresults()}">Answer some questions!</h3>   
+                    </div>
+                </div>
+            
+                <div class="row" data-bind="visible:showresults">
+                    <div class="span10 offset2" style="padding-top:5px;">
+                        <div class="navbar">
+                            <div class="navbar-inner">
+                                <ul class="nav" data-bind="foreach:questions">
+                                    <li data-bind="css:{active:$parent.amActive($data)}"><a href="#" data-bind="text:link, click:function(){$parent.currentQuestion($data)}"></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        
+                       
+                        <legend data-bind="text:title"></legend> 
+                        <div class="alert alert-info" data-bind="text:query"></div> 
+                        
+                        <div class="row">
+                            <div class="span5">
+                                <table data-bind="visible:showresults" class="table table-condensed table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Url you visited</th>
+                                        </tr>   
+                                    </thead>                
+                                    <tbody data-bind="foreach: result">
+                                        <tr>
+                                            <td data-bind="text: ts"></td>
+                                            <td data-bind="text: url, css:{red:$parent.showFake($data)}"}></td>
+                                        </tr> 
+                                    </tbody>
+                                </table>
+                            </div>
+                        
+                            <div class="span5">
+                                <strong data-bind="text:link"></strong>
+                                <p data-bind="text:description"></p>
+                                <label class="checkbox"> 
+                                    <input type="checkbox" data-bind="checked:makefakevisible"/>
+                                    show fakes!
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    var evm = function(){
+    
+        var that = {}
+        
+        that.results = {{results | safe}};
+        
+        that.questions = ko.observableArray({{questions|safe}});
+        
+        that.currentQuestion = ko.observable(that.questions()[0]);
+        
+        that.result = ko.observableArray([]);
+        
+        that.makefakevisible = ko.observable(false);
+        
+        that.updateresult = function(){
+            if (that.currentQuestion().id){
+                if (that.results){
+                    if (that.results[that.currentQuestion().id]){
+                        that.result(JSON.parse(that.results[that.currentQuestion().id]));
+                    }
+                }
+            }
+        };
+        
+        that.init = function(){
+            that.updateresult();
+        }();
+        
+        that.amActive = function(item){
+        
+            if (that.currentQuestion()){
+                return item.id == that.currentQuestion().id;
+            }
+            return false;
+        };
+        
+        that.showFake = function(url){
+            return url.auth == false && that.makefakevisible();
+        };
+        
+        that.showOverView = ko.computed(function(){
+            return that.currentQuestion() == undefined;
+        });
+        
+        that.title = ko.computed(function(){
+            return that.currentQuestion() ? that.currentQuestion().title : "";
+        });
+        
+        that.body = ko.computed(function(){
+            return that.currentQuestion() ?  that.currentQuestion().description : "";
+        });
+        
+        that.link = ko.computed(function(){
+            return that.currentQuestion() ? that.currentQuestion().link : "";
+        });
+        
+        that.description = ko.computed(function(){
+            return that.currentQuestion() ? that.currentQuestion().description : "";
+        });
+        
+        that.query = ko.computed(function(){
+            if (that.currentQuestion()){
+                if (that.currentQuestion().query){   
+                    return that.currentQuestion().query;
+                }
+            }
+            return undefined;
+        }); 
+        
+        
+        that.currentQuestion.subscribe(function(newValue){
+           that.updateresult();
+        });
+        
+        
+        that.result.subscribe(function(newValue){
+            console.log(that.result());
+        });
+        
+        that.event = ko.observable().subscribeTo("myevents");
+        
+        
+        that.event.subscribe(function(event){
+            if (event){
+                if (event.type && event.type == "execution"){
+                    that.results(JSON.parse(event.data))
+                }
+            }
+        });
+        
+        that.showresults = ko.computed(function(){
+            return that.result().length > 0;
+        });    
+        
+        return that;
+    }
+    
+    var notificationmodel = function(){
+        var that = {};
+        
+        that.events = ko.observableArray([]);
+        
+        that.lastEvent = ko.observable("").publishOn("myevents");
+         
+        /*
+         * subscribe to the events observable array and publish the last
+         * element, to be viewed by other view models.  Note that this currently
+         * sends a reference.  To create a deep copy we could do ko.toJSON and recreate
+         * at the other end.
+         */
+        that.events.subscribe(function(newValue){
+            //console.log(that.events()[that.events().length -1]);
+            that.lastEvent(that.events()[that.events().length -1]);   
+        });
+        
+        that.read = function(message){
+            that.events.remove(message);
+        };
+        
+        that.startpolling = function(frequency){
+            
+            setTimeout(function(){
+        
+                $.ajax({
+                    url: "/stream",
+                    dataType: 'json', 
+                    timeout: 30000,
+                    cache: false,
+                    
+                    success: function(data) {
+                        frequency = 500;
+                        that.events.push(data);
+                    },
+                     
+                    error: function(XMLHttpRequest, textStatus, errorThrown){
+                        switch(XMLHttpRequest.status){
+                            case 502: //update server is down
+                            case 403: //forbidden - unlikely to get access anytime soon
+                                frequency = 60000;
+                                break; 
+                            default:
+                                frequency = 5000;
+                        }
+                    },
+                    
+                    complete: function(){
+                        that.startpolling(frequency);        
+                    }
+                });
+            
+            },frequency);
+        }
+        
+        return that;
+    }
+    
+    
+    ko.applyBindings(evm(), $('.experiment')[0]); 
+    var nm = notificationmodel();	
+	ko.applyBindings(nm,$(".notification")[0]);
+    nm.startpolling(500);
+
+</script>
+{% endblock %}
